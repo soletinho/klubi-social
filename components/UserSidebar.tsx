@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { 
   UserPlus, 
   UserCheck,
@@ -169,8 +170,8 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({
               </a>
             </li>
             <li>
-              <a
-                href="#communities-section"
+              <Link
+                href="/communities"
                 className="flex items-center justify-between px-3.5 py-2.5 text-slate-700 hover:bg-slate-50/80 transition"
               >
                 <div className="flex items-center gap-2">
@@ -180,7 +181,7 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({
                 <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-bold text-[11px]">
                   {communitiesCount}
                 </span>
-              </a>
+              </Link>
             </li>
             {isOwnProfile && (
               <li>

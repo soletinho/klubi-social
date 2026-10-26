@@ -123,12 +123,10 @@ export default function CommunityDetailPage() {
       <div className="klubi-card p-5 bg-gradient-to-r from-blue-50/60 via-white to-pink-50/40">
         <div className="flex flex-col md:flex-row items-start gap-5">
           <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border border-slate-200 shrink-0 shadow-md bg-slate-100">
-            <Image
+            <KlubiAvatar
               src={community.imageUrl}
               alt={community.title}
               fill
-              sizes="(max-width: 768px) 128px, 128px"
-              className="object-cover"
               priority
             />
           </div>
