@@ -32,6 +32,7 @@ interface KlubiContextType {
   register: (data: RegisterData) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => void;
+  deleteAccount: () => Promise<boolean>;
   
   // Usuários & Amizades
   getUserById: (id: string) => User | undefined;
@@ -236,6 +237,17 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCurrentUser(updated);
     setUsers(db.getUsers());
     cloudSync.saveUser(updated);
+  };
+
+  // Excluir conta permanentemente
+  const deleteAccount = async (): Promise<boolean> => {
+    if (!currentUser) return false;
+    const userId = currentUser.id;
+    db.deleteUser(userId);
+    setUsers(db.getUsers());
+    setCurrentUser(null);
+    await cloudSync.deleteUser(userId);
+    return true;
   };
 
   // Usuários & Amizades
@@ -514,6 +526,7 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         register,
         logout,
         updateProfile,
+        deleteAccount,
         getUserById,
         getAllUsers,
         isFriend,

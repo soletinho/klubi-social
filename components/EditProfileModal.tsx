@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   X, 
   Upload, 
@@ -19,7 +20,9 @@ import {
   Calendar, 
   EyeOff,
   Smile,
-  RefreshCw
+  RefreshCw,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { useKlubi } from '@/context/KlubiContext';
 import { KlubiAvatar } from '@/components/KlubiAvatar';
@@ -47,12 +50,15 @@ const RETRO_AVATARS = [
 ];
 
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
-  const { currentUser, updateProfile } = useKlubi();
+  const router = useRouter();
+  const { currentUser, updateProfile, deleteAccount } = useKlubi();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estados dos formulários
-  const [activeTab, setActiveTab] = useState<'foto' | 'geral' | 'interesses' | 'privacidade'>('foto');
+  const [activeTab, setActiveTab] = useState<'foto' | 'geral' | 'interesses' | 'privacidade' | 'conta'>('foto');
   const [avatarMethod, setAvatarMethod] = useState<'upload' | 'preset' | 'url'>('upload');
+  const [confirmDeleteText, setConfirmDeleteText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Valores dos campos
   const [name, setName] = useState(currentUser?.name || '');
@@ -97,7 +103,6 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
     reader.onload = (event) => {
       const img = new window.Image();
       img.onload = () => {
-        // Redimensiona para no máximo 400x400 para manter alta resolução e tamanho compacto
         const maxDim = 400;
         let width = img.width;
         let height = img.height;
@@ -169,6 +174,29 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
     }, 800);
   };
 
+  // Exclusão definitiva de conta
+  const handleDeleteProfile = async () => {
+    if (!currentUser) return;
+    const cleanConfirm = confirmDeleteText.trim().toLowerCase();
+    const cleanNick = currentUser.nickname.toLowerCase();
+
+    if (cleanConfirm !== cleanNick && cleanConfirm !== 'excluir') {
+      alert(`Para confirmar a exclusão, digite seu apelido (@${currentUser.nickname}) ou a palavra 'excluir'.`);
+      return;
+    }
+
+    if (!window.confirm('Tem certeza absoluta? Seu perfil, fotos e todos os recados serão apagados permanentemente.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    await deleteAccount();
+    setIsDeleting(false);
+    onClose();
+    alert('Sua conta foi excluída com sucesso.');
+    router.push('/');
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="bg-white border border-klubi-border rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden">
@@ -234,6 +262,18 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
           >
             <EyeOff size={14} />
             <span>Privacidade</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('conta')}
+            className={`px-3.5 py-2 font-semibold rounded-t-lg transition flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'conta'
+                ? 'bg-white text-rose-600 border-t-2 border-t-rose-600 border-x border-slate-200 shadow-2xs'
+                : 'text-slate-500 hover:text-rose-600'
+            }`}
+          >
+            <Trash2 size={14} />
+            <span>Excluir Perfil</span>
           </button>
         </div>
 
@@ -613,41 +653,91 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
               </div>
             </div>
           )}
+
+          {/* =========================================================
+              ABA 5: CONTA & EXCLUSÃO DEFINITIVA
+             ========================================================= */}
+          {activeTab === 'conta' && (
+            <div className="space-y-4">
+              <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-rose-100 rounded-lg text-rose-600 shrink-0 mt-0.5">
+                    <AlertTriangle size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-rose-900 text-sm">
+                      Zona de Perigo: Excluir Perfil Permanentemente
+                    </h4>
+                    <p className="text-rose-700 text-xs mt-1 leading-relaxed">
+                      Ao excluir seu perfil, sua conta será desativada, seu nome sairá de todas as buscas e listas de amigos, e seus recados e depoimentos serão removidos do banco de dados na nuvem.
+                    </p>
+                    <p className="text-rose-800 font-bold text-xs mt-2">
+                      ⚠️ Esta ação é irreversível e não pode ser desfeita.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-rose-200/80 space-y-2">
+                  <label className="block text-xs font-semibold text-rose-950">
+                    Para confirmar, digite seu apelido <span className="underline font-mono">@{currentUser.nickname}</span> ou a palavra <span className="underline font-mono">excluir</span>:
+                  </label>
+                  <input
+                    type="text"
+                    value={confirmDeleteText}
+                    onChange={(e) => setConfirmDeleteText(e.target.value)}
+                    placeholder={`Digite ${currentUser.nickname} ou excluir`}
+                    className="w-full px-3 py-2 border border-rose-300 rounded-lg text-xs bg-white text-rose-950 focus:ring-2 focus:ring-rose-500/30 outline-hidden font-medium"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleDeleteProfile}
+                    disabled={isDeleting || (!confirmDeleteText.trim())}
+                    className="w-full mt-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Trash2 size={15} />
+                    <span>{isDeleting ? 'Excluindo conta...' : 'Excluir Minha Conta Definitivamente'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Rodapé de Ações */}
-        <div className="bg-slate-50 border-t border-slate-200 px-5 py-3 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-slate-600 hover:text-slate-800 font-semibold text-xs rounded-lg hover:bg-slate-200/60 transition"
-          >
-            Cancelar
-          </button>
+        {activeTab !== 'conta' && (
+          <div className="bg-slate-50 border-t border-slate-200 px-5 py-3 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-slate-600 hover:text-slate-800 font-semibold text-xs rounded-lg hover:bg-slate-200/60 transition"
+            >
+              Cancelar
+            </button>
 
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className={`px-5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition shadow-sm ${
-              savedSuccess
-                ? 'bg-emerald-600 text-white'
-                : 'bg-klubi-primary hover:bg-blue-800 text-white'
-            }`}
-          >
-            {savedSuccess ? (
-              <>
-                <Check size={14} />
-                <span>Perfil Atualizado!</span>
-              </>
-            ) : (
-              <>
-                <Check size={14} />
-                <span>{isSaving ? 'Salvando...' : 'Salvar Alterações'}</span>
-              </>
-            )}
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className={`px-5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition shadow-sm ${
+                savedSuccess
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-klubi-primary hover:bg-blue-800 text-white'
+              }`}
+            >
+              {savedSuccess ? (
+                <>
+                  <Check size={14} />
+                  <span>Perfil Atualizado!</span>
+                </>
+              ) : (
+                <>
+                  <Check size={14} />
+                  <span>{isSaving ? 'Salvando...' : 'Salvar Alterações'}</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

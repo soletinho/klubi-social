@@ -60,6 +60,19 @@ export const cloudSync = {
     }
   },
 
+  async deleteUser(userId: string): Promise<void> {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      await supabase.from('profiles').delete().eq('id', userId);
+      await supabase.from('friendships').delete().or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+      await supabase.from('scraps').delete().or(`sender_id.eq.${userId},recipient_id.eq.${userId}`);
+      await supabase.from('testimonials').delete().or(`sender_id.eq.${userId},recipient_id.eq.${userId}`);
+      await supabase.from('visitors').delete().or(`profile_id.eq.${userId},visitor_id.eq.${userId}`);
+    } catch (e) {
+      console.warn('Erro ao excluir usuário no Supabase:', e);
+    }
+  },
+
   // 2. Comunidades
   async fetchCommunities(): Promise<Community[] | null> {
     if (!isSupabaseConfigured || !supabase) return null;

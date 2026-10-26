@@ -71,6 +71,14 @@ export const db = {
     const users = db.getUsers();
     return users.find((u) => u.nickname.toLowerCase() === nickname.toLowerCase());
   },
+  deleteUser: (id: string): void => {
+    const users = db.getUsers().filter((u) => u.id !== id);
+    setItem(STORAGE_KEYS.USERS, users);
+    const session = db.getSessionUser();
+    if (session && session.id === id) {
+      db.setSessionUser(null);
+    }
+  },
 
   // Sessão atual
   getSessionUser: (): User | null => getItem<User | null>(STORAGE_KEYS.SESSION, null),
