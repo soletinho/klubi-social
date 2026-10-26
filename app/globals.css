@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+}
+
+body {
+  background-color: #F8FAFC;
+  color: #0F172A;
+  font-family: var(--font-sans, Inter, system-ui, -apple-system, sans-serif);
+  font-size: 13.5px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar sutil e moderna */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+@layer components {
+  /* Cartões do Klubi */
+  .klubi-card {
+    @apply bg-white border border-klubi-border rounded-xl shadow-klubi overflow-hidden transition-all duration-150;
+  }
+
+  .klubi-card-header {
+    @apply bg-klubi-light/70 px-3.5 py-2.5 border-b border-klubi-border font-semibold text-klubi-primary flex items-center justify-between text-xs tracking-tight;
+  }
+
+  .klubi-link {
+    @apply text-klubi-secondary hover:text-klubi-primary hover:underline cursor-pointer transition-colors;
+  }
+}
