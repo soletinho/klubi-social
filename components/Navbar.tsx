@@ -14,7 +14,10 @@ import {
   LogOut,
   Sparkles,
   ArrowRight,
-  X
+  X,
+  Bell,
+  HeartHandshake,
+  Check
 } from 'lucide-react';
 import { useKlubi } from '@/context/KlubiContext';
 import { cloudSync } from '@/lib/cloudSync';
@@ -23,18 +26,31 @@ import { User } from '@/types';
 
 export const Navbar: React.FC = () => {
   const router = useRouter();
-  const { currentUser, logout, getAllUsers, communities } = useKlubi();
+  const { 
+    currentUser, 
+    logout, 
+    getAllUsers, 
+    communities,
+    getPendingReceivedRequests,
+    acceptFriendRequest,
+    rejectFriendRequest
+  } = useKlubi();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
-  // Fecha o dropdown se clicar fora
+  // Fecha os dropdowns se clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -270,6 +286,100 @@ export const Navbar: React.FC = () => {
 
           {currentUser ? (
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Notificações de Solicitações de Amizade */}
+              <div className="relative" ref={notificationsRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                  className={`p-2 rounded-xl text-white transition relative flex items-center justify-center cursor-pointer ${
+                    getPendingReceivedRequests().length > 0
+                      ? 'bg-rose-500 hover:bg-rose-600 shadow-md animate-pulse'
+                      : 'bg-white/10 hover:bg-white/15'
+                  }`}
+                  title={
+                    getPendingReceivedRequests().length > 0
+                      ? `${getPendingReceivedRequests().length} solicitação(ões) de amizade pendente(s)`
+                      : 'Notificações de amizade'
+                  }
+                >
+                  <Bell size={16} />
+                  {getPendingReceivedRequests().length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-white text-rose-600 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                      {getPendingReceivedRequests().length}
+                    </span>
+                  )}
+                </button>
+
+                {/* Dropdown de Solicitações */}
+                {isNotificationsOpen && (
+                  <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="p-3 bg-gradient-to-r from-blue-900 to-indigo-900 text-white flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-bold text-xs">
+                        <HeartHandshake size={15} className="text-pink-300" />
+                        <span>Solicitações de Amizade</span>
+                      </div>
+                      <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold">
+                        {getPendingReceivedRequests().length}
+                      </span>
+                    </div>
+
+                    <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                      {getPendingReceivedRequests().length === 0 ? (
+                        <div className="p-6 text-center text-xs text-slate-400">
+                          Nenhuma solicitação pendente no momento.
+                        </div>
+                      ) : (
+                        getPendingReceivedRequests().map((req) => (
+                          <div key={req.id} className="p-3 hover:bg-slate-50 transition flex items-center gap-2.5 justify-between">
+                            <Link
+                              href={`/profile/${req.senderId}`}
+                              onClick={() => setIsNotificationsOpen(false)}
+                              className="flex items-center gap-2.5 min-w-0 flex-1 group"
+                            >
+                              <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-slate-200 shrink-0 bg-slate-100">
+                                <KlubiAvatar src={req.senderAvatar} alt={req.senderName} fill />
+                              </div>
+                              <div className="min-w-0">
+                                <h5 className="font-bold text-xs text-slate-800 group-hover:text-klubi-primary truncate">
+                                  {req.senderName}
+                                </h5>
+                                <p className="text-[10px] text-slate-400 truncate">
+                                  {req.senderNickname ? `@${req.senderNickname}` : 'Quer ser seu amigo'}
+                                </p>
+                              </div>
+                            </Link>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await acceptFriendRequest(req.senderId);
+                                  setIsNotificationsOpen(false);
+                                }}
+                                className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition cursor-pointer"
+                                title="Aceitar amizade"
+                              >
+                                <Check size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await rejectFriendRequest(req.senderId);
+                                }}
+                                className="p-1.5 bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-lg transition cursor-pointer"
+                                title="Recusar"
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <Link
                 href="/"
                 className="flex items-center gap-2 bg-white/10 hover:bg-white/15 px-2.5 py-1.5 rounded-xl border border-white/20 transition"

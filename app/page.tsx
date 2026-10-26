@@ -19,6 +19,7 @@ import {
 import { useKlubi } from '@/context/KlubiContext';
 import { UserSidebar } from '@/components/UserSidebar';
 import { DegreesOfSeparation } from '@/components/DegreesOfSeparation';
+import { FriendRequestNotifications } from '@/components/FriendRequestNotifications';
 import { SocialReputation } from '@/components/SocialReputation';
 import { ProfileTabs } from '@/components/ProfileTabs';
 import { Scrapbook } from '@/components/Scrapbook';
@@ -235,6 +236,9 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
+        {/* 0. Notificações de Solicitações de Amizade */}
+        <FriendRequestNotifications />
 
         {/* 1. Graus de Conexão */}
         <DegreesOfSeparation

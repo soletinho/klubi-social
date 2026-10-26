@@ -61,6 +61,18 @@ export interface FriendSummary {
   avatarUrl: string;
 }
 
+export type FriendshipStatus = 'FRIENDS' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'NOT_FRIENDS';
+
+export interface FriendRequest {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar: string;
+  senderNickname?: string;
+  recipientId: string;
+  createdAt: string;
+}
+
 export interface CommunitySummary {
   id: string;
   title: string;

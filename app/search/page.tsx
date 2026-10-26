@@ -12,7 +12,9 @@ import {
   ArrowRight, 
   Sparkles, 
   PlusCircle,
-  MapPin
+  MapPin,
+  Clock,
+  HeartHandshake
 } from 'lucide-react';
 import { useKlubi } from '@/context/KlubiContext';
 import { KlubiAvatar } from '@/components/KlubiAvatar';
@@ -30,8 +32,11 @@ function SearchResultsContent() {
     currentUser, 
     getAllUsers, 
     communities, 
-    isFriend, 
-    toggleFriendship, 
+    getFriendshipStatus,
+    sendFriendRequest,
+    cancelFriendRequest,
+    acceptFriendRequest,
+    removeFriend,
     isCommunityMember, 
     toggleCommunityMembership 
   } = useKlubi();
@@ -227,7 +232,29 @@ function SearchResultsContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {matchedUsers.map((user) => {
                       const isMe = currentUser?.id === user.id;
-                      const alreadyFriend = isFriend(user.id);
+                      const status = getFriendshipStatus(user.id);
+
+                      const handleUserAction = async () => {
+                        if (!currentUser) {
+                          alert('Faça login para interagir com outros usuários!');
+                          return;
+                        }
+                        if (status === 'NOT_FRIENDS') {
+                          await sendFriendRequest(user.id);
+                          alert(`Solicitação de amizade enviada para ${user.name}!`);
+                        } else if (status === 'PENDING_SENT') {
+                          if (window.confirm(`Deseja cancelar a solicitação para ${user.name}?`)) {
+                            await cancelFriendRequest(user.id);
+                          }
+                        } else if (status === 'PENDING_RECEIVED') {
+                          await acceptFriendRequest(user.id);
+                          alert(`Você e ${user.name} agora são amigos no Klubi! 🎉`);
+                        } else if (status === 'FRIENDS') {
+                          if (window.confirm(`Deseja desfazer a amizade com ${user.name}?`)) {
+                            await removeFriend(user.id);
+                          }
+                        }
+                      };
 
                       return (
                         <div
@@ -265,15 +292,30 @@ function SearchResultsContent() {
                           {!isMe && (
                             <button
                               type="button"
-                              onClick={() => toggleFriendship(user.id)}
+                              onClick={handleUserAction}
                               className={`p-2 rounded-xl text-xs font-semibold shrink-0 transition ${
-                                alreadyFriend
-                                  ? 'bg-slate-100 text-emerald-700 hover:bg-rose-50 hover:text-rose-700'
+                                status === 'FRIENDS'
+                                  ? 'bg-slate-100 text-emerald-700 hover:bg-rose-50 hover:text-rose-700 border border-slate-200'
+                                  : status === 'PENDING_SENT'
+                                  ? 'bg-amber-50 text-amber-700 hover:bg-rose-50 hover:text-rose-700 border border-amber-300'
+                                  : status === 'PENDING_RECEIVED'
+                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse'
                                   : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                               }`}
-                              title={alreadyFriend ? 'Amigos no Klubi (Clique para desfazer)' : 'Adicionar aos Amigos'}
+                              title={
+                                status === 'FRIENDS'
+                                  ? 'Amigos no Klubi (Clique para desfazer)'
+                                  : status === 'PENDING_SENT'
+                                  ? 'Solicitação enviada (Clique para cancelar)'
+                                  : status === 'PENDING_RECEIVED'
+                                  ? 'Aceitar solicitação de amizade'
+                                  : 'Adicionar aos Amigos'
+                              }
                             >
-                              {alreadyFriend ? <UserCheck size={16} /> : <UserPlus size={16} />}
+                              {status === 'FRIENDS' && <UserCheck size={16} />}
+                              {status === 'PENDING_SENT' && <Clock size={16} />}
+                              {status === 'PENDING_RECEIVED' && <HeartHandshake size={16} />}
+                              {status === 'NOT_FRIENDS' && <UserPlus size={16} />}
                             </button>
                           )}
                         </div>

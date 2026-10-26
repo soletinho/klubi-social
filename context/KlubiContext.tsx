@@ -10,7 +10,9 @@ import {
   Community, 
   ForumTopic, 
   ForumReply, 
-  CommunityPoll 
+  CommunityPoll,
+  FriendRequest,
+  FriendshipStatus
 } from '@/types';
 import { db } from '@/lib/database';
 import { cloudSync } from '@/lib/cloudSync';
@@ -40,6 +42,14 @@ interface KlubiContextType {
   isFriend: (targetId: string) => boolean;
   toggleFriendship: (targetId: string) => boolean;
   getUserFriends: (userId: string) => User[];
+  getFriendshipStatus: (targetId: string) => FriendshipStatus;
+  sendFriendRequest: (targetId: string) => Promise<void>;
+  cancelFriendRequest: (targetId: string) => Promise<void>;
+  acceptFriendRequest: (senderId: string) => Promise<void>;
+  rejectFriendRequest: (senderId: string) => Promise<void>;
+  removeFriend: (targetId: string) => Promise<void>;
+  getPendingReceivedRequests: () => FriendRequest[];
+  friendRequests: FriendRequest[];
 
   // Scraps
   scraps: Scrap[];
@@ -95,6 +105,8 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Estados locais sincronizados com o banco
   const [users, setUsers] = useState<User[]>([]);
+  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
+  const [friendships, setFriendships] = useState<Record<string, string[]>>({});
   const [scraps, setScraps] = useState<Scrap[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [communities, setCommunities] = useState<Community[]>([]);
@@ -118,6 +130,8 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Se houver usuários locais, envia para a nuvem para que outros vejam
     localUsers.forEach((u) => cloudSync.saveUser(u));
 
+    setFriendRequests(db.getFriendRequests());
+    setFriendships(db.getFriendships());
     setScraps(db.getScraps());
     setTestimonials(db.getTestimonials());
     setCommunities(db.getCommunities());
@@ -150,6 +164,37 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const cloudTests = await cloudSync.fetchTestimonials();
         if (cloudTests && cloudTests.length > 0) {
           setTestimonials(cloudTests);
+        }
+
+        const cloudFriendships = await cloudSync.fetchFriendships();
+        if (cloudFriendships && cloudFriendships.length > 0) {
+          const reqs: FriendRequest[] = [];
+          const mutuals: Record<string, string[]> = {};
+
+          cloudFriendships.forEach((f) => {
+            if (f.userId.startsWith('req:')) {
+              const senderId = f.userId.replace('req:', '');
+              const sender = db.getUserById(senderId) || cloudUsers?.find((u) => u.id === senderId);
+              reqs.push({
+                id: `req-${senderId}-${f.friendId}`,
+                senderId,
+                senderName: sender?.name || 'Membro do Klubi',
+                senderAvatar: sender?.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=klubi',
+                senderNickname: sender?.nickname,
+                recipientId: f.friendId,
+                createdAt: 'Recentemente',
+              });
+            } else {
+              if (!mutuals[f.userId]) mutuals[f.userId] = [];
+              if (!mutuals[f.userId].includes(f.friendId)) {
+                mutuals[f.userId].push(f.friendId);
+              }
+            }
+          });
+
+          setFriendRequests(reqs);
+          setFriendships(mutuals);
+          reqs.forEach((r) => db.saveFriendRequest(r));
         }
       } catch (err) {
         console.warn('Erro ao sincronizar com nuvem:', err);
@@ -260,21 +305,109 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const isFriend = (targetId: string): boolean => {
     if (!currentUser) return false;
-    const friendships = db.getFriendships();
-    const list = friendships[currentUser.id] || [];
+    const allFriendships = Object.keys(friendships).length > 0 ? friendships : db.getFriendships();
+    const list = allFriendships[currentUser.id] || [];
     return list.includes(targetId);
+  };
+
+  const getFriendshipStatus = (targetId: string): FriendshipStatus => {
+    if (!currentUser || currentUser.id === targetId) return 'NOT_FRIENDS';
+    
+    // 1. Já são amigos mútuos?
+    const allFriendships = Object.keys(friendships).length > 0 ? friendships : db.getFriendships();
+    const myFriends = allFriendships[currentUser.id] || [];
+    if (myFriends.includes(targetId)) return 'FRIENDS';
+
+    // 2. Eu enviei solicitação para ele e está pendente?
+    const allReqs = friendRequests.length > 0 ? friendRequests : db.getFriendRequests();
+    const sentReq = allReqs.find((r) => r.senderId === currentUser.id && r.recipientId === targetId);
+    if (sentReq) return 'PENDING_SENT';
+
+    // 3. Ele enviou solicitação para mim e está aguardando minha aprovação?
+    const receivedReq = allReqs.find((r) => r.senderId === targetId && r.recipientId === currentUser.id);
+    if (receivedReq) return 'PENDING_RECEIVED';
+
+    return 'NOT_FRIENDS';
+  };
+
+  const sendFriendRequest = async (targetId: string) => {
+    if (!currentUser || currentUser.id === targetId) return;
+    const newReq: FriendRequest = {
+      id: `req-${currentUser.id}-${targetId}`,
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      senderAvatar: currentUser.avatarUrl,
+      senderNickname: currentUser.nickname,
+      recipientId: targetId,
+      createdAt: 'Agora mesmo',
+    };
+    db.saveFriendRequest(newReq);
+    setFriendRequests((prev) => [...prev.filter((r) => r.id !== newReq.id), newReq]);
+    await cloudSync.sendFriendRequest(currentUser.id, targetId);
+  };
+
+  const cancelFriendRequest = async (targetId: string) => {
+    if (!currentUser) return;
+    const reqId = `req-${currentUser.id}-${targetId}`;
+    db.deleteFriendRequest(reqId);
+    setFriendRequests((prev) => prev.filter((r) => !(r.senderId === currentUser.id && r.recipientId === targetId)));
+    await cloudSync.cancelFriendRequest(currentUser.id, targetId);
+  };
+
+  const acceptFriendRequest = async (senderId: string) => {
+    if (!currentUser) return;
+    db.deleteFriendRequest(`req-${senderId}-${currentUser.id}`);
+    setFriendRequests((prev) => prev.filter((r) => !(r.senderId === senderId && r.recipientId === currentUser.id)));
+
+    db.addMutualFriendship(currentUser.id, senderId);
+    const updated = db.getFriendships();
+    setFriendships(updated);
+
+    await cloudSync.acceptFriendRequest(senderId, currentUser.id);
+  };
+
+  const rejectFriendRequest = async (senderId: string) => {
+    if (!currentUser) return;
+    db.deleteFriendRequest(`req-${senderId}-${currentUser.id}`);
+    setFriendRequests((prev) => prev.filter((r) => !(r.senderId === senderId && r.recipientId === currentUser.id)));
+    await cloudSync.rejectFriendRequest(senderId, currentUser.id);
+  };
+
+  const removeFriend = async (targetId: string) => {
+    if (!currentUser) return;
+    db.removeMutualFriendship(currentUser.id, targetId);
+    setFriendships(db.getFriendships());
+    await cloudSync.removeFriend(currentUser.id, targetId);
+  };
+
+  const getPendingReceivedRequests = (): FriendRequest[] => {
+    if (!currentUser) return [];
+    const allReqs = friendRequests.length > 0 ? friendRequests : db.getFriendRequests();
+    return allReqs.filter((r) => r.recipientId === currentUser.id);
   };
 
   const toggleFriendship = (targetId: string): boolean => {
     if (!currentUser) return false;
-    const isNow = db.toggleFriendship(currentUser.id, targetId);
-    return isNow;
+    const status = getFriendshipStatus(targetId);
+    if (status === 'FRIENDS') {
+      removeFriend(targetId);
+      return false;
+    } else if (status === 'PENDING_SENT') {
+      cancelFriendRequest(targetId);
+      return false;
+    } else if (status === 'PENDING_RECEIVED') {
+      acceptFriendRequest(targetId);
+      return true;
+    } else {
+      sendFriendRequest(targetId);
+      return false;
+    }
   };
 
   const getUserFriends = (userId: string): User[] => {
-    const friendships = db.getFriendships();
-    const friendIds = friendships[userId] || [];
-    return friendIds.map((id) => db.getUserById(id)).filter(Boolean) as User[];
+    const allFriendships = Object.keys(friendships).length > 0 ? friendships : db.getFriendships();
+    const friendIds = allFriendships[userId] || [];
+    return friendIds.map((id) => getUserById(id)).filter(Boolean) as User[];
   };
 
   // Scraps
@@ -532,6 +665,14 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         isFriend,
         toggleFriendship,
         getUserFriends,
+        getFriendshipStatus,
+        sendFriendRequest,
+        cancelFriendRequest,
+        acceptFriendRequest,
+        rejectFriendRequest,
+        removeFriend,
+        getPendingReceivedRequests,
+        friendRequests,
         scraps,
         addScrap,
         deleteScrap,

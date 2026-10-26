@@ -15,7 +15,8 @@ import {
   MapPin,
   Edit3,
   Camera,
-  UserX
+  UserX,
+  Clock
 } from 'lucide-react';
 import { User } from '@/types';
 import { useKlubi } from '@/context/KlubiContext';
@@ -52,16 +53,37 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({
   onOpenTestimonialForm,
   isOwnProfile = true,
 }) => {
-  const { isFriend, toggleFriendship } = useKlubi();
+  const { 
+    currentUser,
+    getFriendshipStatus, 
+    sendFriendRequest, 
+    cancelFriendRequest, 
+    acceptFriendRequest, 
+    removeFriend 
+  } = useKlubi();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const alreadyFriend = isFriend(user.id);
+  const friendshipStatus = getFriendshipStatus(user.id);
 
-  const handleToggleFriend = () => {
-    const isNow = toggleFriendship(user.id);
-    if (isNow) {
+  const handleFriendAction = async () => {
+    if (!currentUser) {
+      alert('Faça login para adicionar amigos!');
+      return;
+    }
+
+    if (friendshipStatus === 'NOT_FRIENDS') {
+      await sendFriendRequest(user.id);
+      alert(`Solicitação de amizade enviada para ${user.name}! Assim que ela aceitar, vocês serão amigos no Klubi.`);
+    } else if (friendshipStatus === 'PENDING_SENT') {
+      if (window.confirm(`Deseja cancelar a solicitação de amizade enviada para ${user.name}?`)) {
+        await cancelFriendRequest(user.id);
+      }
+    } else if (friendshipStatus === 'PENDING_RECEIVED') {
+      await acceptFriendRequest(user.id);
       alert(`Você e ${user.name} agora são amigos no Klubi! 🎉`);
-    } else {
-      alert(`Você desfez a amizade com ${user.name}.`);
+    } else if (friendshipStatus === 'FRIENDS') {
+      if (window.confirm(`Tem certeza que deseja desfazer a amizade com ${user.name}?`)) {
+        await removeFriend(user.id);
+      }
     }
   };
 
@@ -207,19 +229,43 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({
           {/* Botão de Amizade para Perfil de Terceiros */}
           {!isOwnProfile && (
             <button
-              onClick={handleToggleFriend}
-              className={`w-full py-2 px-3.5 rounded-lg font-semibold flex items-center justify-center gap-2 transition ${
-                alreadyFriend
+              onClick={handleFriendAction}
+              className={`w-full py-2 px-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition text-xs shadow-xs ${
+                friendshipStatus === 'FRIENDS'
                   ? 'bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-700 border border-slate-300'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+                  : friendshipStatus === 'PENDING_SENT'
+                  ? 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-rose-50 hover:text-rose-700'
+                  : friendshipStatus === 'PENDING_RECEIVED'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
               }`}
+              title={
+                friendshipStatus === 'FRIENDS'
+                  ? 'Clique para desfazer amizade'
+                  : friendshipStatus === 'PENDING_SENT'
+                  ? 'Clique para cancelar solicitação'
+                  : undefined
+              }
             >
-              {alreadyFriend ? (
+              {friendshipStatus === 'FRIENDS' && (
                 <>
                   <UserCheck size={14} className="text-emerald-600" />
                   <span>Amigos no Klubi ✓</span>
                 </>
-              ) : (
+              )}
+              {friendshipStatus === 'PENDING_SENT' && (
+                <>
+                  <Clock size={14} className="text-amber-700" />
+                  <span>Solicitação Enviada ⏳</span>
+                </>
+              )}
+              {friendshipStatus === 'PENDING_RECEIVED' && (
+                <>
+                  <HeartHandshake size={14} />
+                  <span>Aceitar Amizade 🎉</span>
+                </>
+              )}
+              {friendshipStatus === 'NOT_FRIENDS' && (
                 <>
                   <UserPlus size={14} />
                   <span>Adicionar aos Amigos</span>

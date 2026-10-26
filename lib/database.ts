@@ -7,7 +7,8 @@ import {
   ForumReply, 
   CommunityPoll, 
   ProfileVisitor,
-  UserReputation 
+  UserReputation,
+  FriendRequest 
 } from '@/types';
 
 // Chaves do LocalStorage
@@ -23,6 +24,7 @@ const STORAGE_KEYS = {
   POLLS: 'klubi_polls_v1',
   VISITORS: 'klubi_visitors_v1',
   FRIENDSHIPS: 'klubi_friendships_v1',
+  FRIEND_REQUESTS: 'klubi_friend_requests_v1',
   REPUTATIONS: 'klubi_reputations_v1',
 };
 
@@ -187,22 +189,45 @@ export const db = {
     setItem(STORAGE_KEYS.VISITORS, list);
   },
 
-  // Amizades: Record<userId, friendId[]>
+  // Amizades Mútuas: Record<userId, friendId[]>
   getFriendships: (): Record<string, string[]> => getItem<Record<string, string[]>>(STORAGE_KEYS.FRIENDSHIPS, {}),
+  addMutualFriendship: (userA: string, userB: string): void => {
+    const friendships = db.getFriendships();
+    const listA = friendships[userA] || [];
+    const listB = friendships[userB] || [];
+    if (!listA.includes(userB)) friendships[userA] = [...listA, userB];
+    if (!listB.includes(userA)) friendships[userB] = [...listB, userA];
+    setItem(STORAGE_KEYS.FRIENDSHIPS, friendships);
+  },
+  removeMutualFriendship: (userA: string, userB: string): void => {
+    const friendships = db.getFriendships();
+    if (friendships[userA]) friendships[userA] = friendships[userA].filter((id) => id !== userB);
+    if (friendships[userB]) friendships[userB] = friendships[userB].filter((id) => id !== userA);
+    setItem(STORAGE_KEYS.FRIENDSHIPS, friendships);
+  },
   toggleFriendship: (userId: string, targetId: string): boolean => {
     const friendships = db.getFriendships();
     const userFriends = friendships[userId] || [];
     let isNow = false;
-
     if (userFriends.includes(targetId)) {
-      friendships[userId] = userFriends.filter((id) => id !== targetId);
+      db.removeMutualFriendship(userId, targetId);
       isNow = false;
     } else {
-      friendships[userId] = [...userFriends, targetId];
+      db.addMutualFriendship(userId, targetId);
       isNow = true;
     }
-    setItem(STORAGE_KEYS.FRIENDSHIPS, friendships);
     return isNow;
+  },
+
+  // Solicitações de Amizade (Friend Requests)
+  getFriendRequests: (): FriendRequest[] => getItem<FriendRequest[]>(STORAGE_KEYS.FRIEND_REQUESTS, []),
+  saveFriendRequest: (req: FriendRequest): void => {
+    const list = db.getFriendRequests().filter((r) => r.id !== req.id);
+    setItem(STORAGE_KEYS.FRIEND_REQUESTS, [req, ...list]);
+  },
+  deleteFriendRequest: (id: string): void => {
+    const list = db.getFriendRequests().filter((r) => r.id !== id);
+    setItem(STORAGE_KEYS.FRIEND_REQUESTS, list);
   },
 
   // Reputações

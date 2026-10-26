@@ -218,4 +218,72 @@ export const cloudSync = {
       console.warn('Erro ao atualizar depoimento no Supabase:', e);
     }
   },
+
+  // 5. Amizades e Solicitações de Amizade
+  async fetchFriendships(): Promise<{ userId: string; friendId: string }[] | null> {
+    if (!isSupabaseConfigured || !supabase) return null;
+    try {
+      const { data, error } = await supabase.from('friendships').select('*');
+      if (error || !data) return null;
+      return data.map((f: any) => ({
+        userId: f.user_id,
+        friendId: f.friend_id,
+      }));
+    } catch (e) {
+      return null;
+    }
+  },
+
+  async sendFriendRequest(senderId: string, recipientId: string): Promise<void> {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      await supabase.from('friendships').insert({
+        user_id: `req:${senderId}`,
+        friend_id: recipientId,
+      });
+    } catch (e) {
+      console.warn('Erro ao enviar solicitacao no Supabase:', e);
+    }
+  },
+
+  async cancelFriendRequest(senderId: string, recipientId: string): Promise<void> {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      await supabase.from('friendships').delete().eq('user_id', `req:${senderId}`).eq('friend_id', recipientId);
+    } catch (e) {
+      console.warn('Erro ao cancelar solicitacao no Supabase:', e);
+    }
+  },
+
+  async acceptFriendRequest(senderId: string, recipientId: string): Promise<void> {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      await supabase.from('friendships').delete().eq('user_id', `req:${senderId}`).eq('friend_id', recipientId);
+      await supabase.from('friendships').upsert([
+        { user_id: senderId, friend_id: recipientId },
+        { user_id: recipientId, friend_id: senderId },
+      ]);
+    } catch (e) {
+      console.warn('Erro ao aceitar amizade no Supabase:', e);
+    }
+  },
+
+  async rejectFriendRequest(senderId: string, recipientId: string): Promise<void> {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      await supabase.from('friendships').delete().eq('user_id', `req:${senderId}`).eq('friend_id', recipientId);
+    } catch (e) {
+      console.warn('Erro ao recusar amizade no Supabase:', e);
+    }
+  },
+
+  async removeFriend(userA: string, userB: string): Promise<void> {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      await supabase.from('friendships').delete().eq('user_id', userA).eq('friend_id', userB);
+      await supabase.from('friendships').delete().eq('user_id', userB).eq('friend_id', userA);
+    } catch (e) {
+      console.warn('Erro ao remover amizade no Supabase:', e);
+    }
+  },
 };
