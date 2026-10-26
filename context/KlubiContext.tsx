@@ -13,6 +13,7 @@ import {
   CommunityPoll 
 } from '@/types';
 import { db } from '@/lib/database';
+import { cloudSync } from '@/lib/cloudSync';
 
 interface RegisterData {
   name: string;
@@ -114,6 +115,36 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setPolls(db.getPolls());
     setVisitors(db.getVisitors());
     setIsLoadingSession(false);
+
+    // Sincronização em nuvem com Supabase (quando as chaves estiverem configuradas)
+    const syncCloudData = async () => {
+      try {
+        const cloudUsers = await cloudSync.fetchUsers();
+        if (cloudUsers && cloudUsers.length > 0) {
+          cloudUsers.forEach((u) => db.saveUser(u));
+        }
+
+        const cloudComms = await cloudSync.fetchCommunities();
+        if (cloudComms && cloudComms.length > 0) {
+          cloudComms.forEach((c) => db.saveCommunity(c));
+          setCommunities(db.getCommunities());
+        }
+
+        const cloudScraps = await cloudSync.fetchScraps();
+        if (cloudScraps && cloudScraps.length > 0) {
+          setScraps(cloudScraps);
+        }
+
+        const cloudTests = await cloudSync.fetchTestimonials();
+        if (cloudTests && cloudTests.length > 0) {
+          setTestimonials(cloudTests);
+        }
+      } catch (err) {
+        console.warn('Erro ao sincronizar com nuvem:', err);
+      }
+    };
+
+    syncCloudData();
   }, []);
 
   // Cadastro de novo usuário do zero
@@ -155,6 +186,7 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     db.saveUser(newUser);
     db.setSessionUser(newUser);
     setCurrentUser(newUser);
+    cloudSync.saveUser(newUser);
 
     return { success: true };
   };
@@ -190,6 +222,7 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     db.saveUser(updated);
     db.setSessionUser(updated);
     setCurrentUser(updated);
+    cloudSync.saveUser(updated);
   };
 
   // Usuários & Amizades
@@ -229,11 +262,13 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     db.saveScrap(newScrap);
     setScraps(db.getScraps());
+    cloudSync.saveScrap(newScrap);
   };
 
   const deleteScrap = (scrapId: string) => {
     db.deleteScrap(scrapId);
     setScraps(db.getScraps());
+    cloudSync.deleteScrap(scrapId);
   };
 
   const getScrapsForUser = (userId: string): Scrap[] => {
@@ -255,16 +290,19 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     db.saveTestimonial(newTest);
     setTestimonials(db.getTestimonials());
+    cloudSync.saveTestimonial(newTest);
   };
 
   const acceptTestimonial = (testId: string) => {
     db.updateTestimonialStatus(testId, 'ACCEPTED');
     setTestimonials(db.getTestimonials());
+    cloudSync.updateTestimonialStatus(testId, 'ACCEPTED');
   };
 
   const rejectTestimonial = (testId: string) => {
     db.updateTestimonialStatus(testId, 'REJECTED');
     setTestimonials(db.getTestimonials());
+    cloudSync.updateTestimonialStatus(testId, 'REJECTED');
   };
 
   const getTestimonialsForUser = (userId: string): Testimonial[] => {
@@ -292,6 +330,7 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       db.toggleMembership(newComm.id, currentUser.id);
     }
     setCommunities(db.getCommunities());
+    cloudSync.saveCommunity(newComm);
     return newComm;
   };
 
