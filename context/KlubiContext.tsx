@@ -93,6 +93,7 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isLoadingSession, setIsLoadingSession] = useState(true);
 
   // Estados locais sincronizados com o banco
+  const [users, setUsers] = useState<User[]>([]);
   const [scraps, setScraps] = useState<Scrap[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [communities, setCommunities] = useState<Community[]>([]);
@@ -106,7 +107,16 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const session = db.getSessionUser();
     if (session) {
       setCurrentUser(session);
+      // Garante que o usuário logado está na nuvem
+      cloudSync.saveUser(session);
     }
+
+    const localUsers = db.getUsers();
+    setUsers(localUsers);
+
+    // Se houver usuários locais, envia para a nuvem para que outros vejam
+    localUsers.forEach((u) => cloudSync.saveUser(u));
+
     setScraps(db.getScraps());
     setTestimonials(db.getTestimonials());
     setCommunities(db.getCommunities());
@@ -122,6 +132,7 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const cloudUsers = await cloudSync.fetchUsers();
         if (cloudUsers && cloudUsers.length > 0) {
           cloudUsers.forEach((u) => db.saveUser(u));
+          setUsers(db.getUsers());
         }
 
         const cloudComms = await cloudSync.fetchCommunities();
@@ -186,6 +197,7 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     db.saveUser(newUser);
     db.setSessionUser(newUser);
     setCurrentUser(newUser);
+    setUsers(db.getUsers());
     cloudSync.saveUser(newUser);
 
     return { success: true };
@@ -222,12 +234,17 @@ export const KlubiProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     db.saveUser(updated);
     db.setSessionUser(updated);
     setCurrentUser(updated);
+    setUsers(db.getUsers());
     cloudSync.saveUser(updated);
   };
 
   // Usuários & Amizades
-  const getUserById = (id: string): User | undefined => db.getUserById(id);
-  const getAllUsers = (): User[] => db.getUsers();
+  const getUserById = (id: string): User | undefined => {
+    return users.find((u) => u.id === id) || db.getUserById(id);
+  };
+  const getAllUsers = (): User[] => {
+    return users.length > 0 ? users : db.getUsers();
+  };
 
   const isFriend = (targetId: string): boolean => {
     if (!currentUser) return false;

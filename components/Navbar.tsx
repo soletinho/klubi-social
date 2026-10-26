@@ -17,6 +17,9 @@ import {
   X
 } from 'lucide-react';
 import { useKlubi } from '@/context/KlubiContext';
+import { cloudSync } from '@/lib/cloudSync';
+import { db } from '@/lib/database';
+import { User } from '@/types';
 
 export const Navbar: React.FC = () => {
   const router = useRouter();
@@ -39,9 +42,25 @@ export const Navbar: React.FC = () => {
   }, []);
 
   const cleanQuery = searchTerm.trim().toLowerCase();
+  const [liveUsers, setLiveUsers] = useState<User[]>([]);
 
-  // Resultados rápidos ao vivo
-  const allUsers = getAllUsers();
+  useEffect(() => {
+    if (cleanQuery) {
+      cloudSync.fetchUsers().then((fetched) => {
+        if (fetched && fetched.length > 0) {
+          setLiveUsers(fetched);
+          fetched.forEach((u) => db.saveUser(u));
+        }
+      });
+    }
+  }, [cleanQuery]);
+
+  // Resultados rápidos ao vivo (combinando local e nuvem)
+  const userMap = new Map<string, User>();
+  getAllUsers().forEach((u) => userMap.set(u.id, u));
+  liveUsers.forEach((u) => userMap.set(u.id, u));
+  const allUsers = Array.from(userMap.values());
+
   const matchedUsers = cleanQuery
     ? allUsers
         .filter(

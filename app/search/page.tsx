@@ -17,6 +17,9 @@ import {
 import { useKlubi } from '@/context/KlubiContext';
 import { KlubiAvatar } from '@/components/KlubiAvatar';
 import { CreateCommunityModal } from '@/components/CreateCommunityModal';
+import { cloudSync } from '@/lib/cloudSync';
+import { db } from '@/lib/database';
+import { User } from '@/types';
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -36,9 +39,20 @@ function SearchResultsContent() {
   const [query, setQuery] = useState(initialQuery);
   const [activeTab, setActiveTab] = useState<'all' | 'people' | 'communities'>('all');
   const [isCreateCommOpen, setIsCreateCommOpen] = useState(false);
+  const [liveUsers, setLiveUsers] = useState<User[]>([]);
 
   useEffect(() => {
     setQuery(initialQuery);
+  }, [initialQuery]);
+
+  useEffect(() => {
+    // Sincroniza em tempo real com a nuvem na busca
+    cloudSync.fetchUsers().then((fetched) => {
+      if (fetched && fetched.length > 0) {
+        setLiveUsers(fetched);
+        fetched.forEach((u) => db.saveUser(u));
+      }
+    });
   }, [initialQuery]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -48,8 +62,13 @@ function SearchResultsContent() {
 
   const cleanQ = query.trim().toLowerCase();
 
+  // Combina usuários locais e da nuvem sem duplicatas
+  const userMap = new Map<string, User>();
+  getAllUsers().forEach((u) => userMap.set(u.id, u));
+  liveUsers.forEach((u) => userMap.set(u.id, u));
+  const allUsers = Array.from(userMap.values());
+
   // Busca em usuários
-  const allUsers = getAllUsers();
   const matchedUsers = cleanQ
     ? allUsers.filter((u) => {
         return (
