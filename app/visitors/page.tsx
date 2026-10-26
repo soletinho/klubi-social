@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { KlubiAvatar } from '@/components/KlubiAvatar';
 import { 
   Eye, 
   EyeOff, 
@@ -241,12 +241,10 @@ export default function VisitorsHistoryPage() {
                       className="p-3.5 rounded-xl border border-slate-200/90 hover:border-klubi-secondary/60 bg-white shadow-2xs hover:shadow-card transition flex flex-col items-center text-center group"
                     >
                       <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-2xs group-hover:scale-105 transition-transform duration-300">
-                        <Image
+                        <KlubiAvatar
                           src={visitor.visitorAvatar}
                           alt={visitor.visitorName}
                           fill
-                          sizes="64px"
-                          className="object-cover"
                         />
                       </div>
 

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
+import { KlubiAvatar } from '@/components/KlubiAvatar';
 import { 
   MessageSquare, 
   Send, 
@@ -88,12 +88,10 @@ export const Scrapbook: React.FC<ScrapbookProps> = ({
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <div className="relative w-5 h-5 rounded-full overflow-hidden border border-slate-300">
-                  <Image
+                  <KlubiAvatar
                     src={currentUser.avatarUrl}
                     alt={currentUser.name}
                     fill
-                    sizes="20px"
-                    className="object-cover"
                   />
                 </div>
                 <label htmlFor="scrap-text" className="font-semibold text-xs text-slate-700">
@@ -195,12 +193,10 @@ export const Scrapbook: React.FC<ScrapbookProps> = ({
                   className="py-3.5 flex gap-3.5 group"
                 >
                   <div className="relative w-11 h-11 rounded-xl border border-slate-200 overflow-hidden shrink-0 bg-slate-100 shadow-2xs">
-                    <Image
+                    <KlubiAvatar
                       src={scrap.senderAvatar}
                       alt={scrap.senderName}
                       fill
-                      sizes="44px"
-                      className="object-cover"
                     />
                   </div>
 

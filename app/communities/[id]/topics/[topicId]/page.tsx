@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { KlubiAvatar } from '@/components/KlubiAvatar';
 import { useParams } from 'next/navigation';
 import { 
   ArrowLeft, 
@@ -159,12 +159,10 @@ export default function TopicDiscussionPage() {
         <div className="klubi-card border-l-4 border-l-klubi-primary p-4 sm:p-5">
           <div className="flex items-start gap-4">
             <div className="relative w-12 h-12 rounded-xl border border-slate-200 overflow-hidden shrink-0 bg-slate-100 shadow-2xs">
-              <Image
+              <KlubiAvatar
                 src={topic.authorAvatar}
                 alt={topic.authorName}
                 fill
-                sizes="48px"
-                className="object-cover"
               />
             </div>
 
@@ -195,12 +193,10 @@ export default function TopicDiscussionPage() {
           <div key={reply.id} className="klubi-card p-4 sm:p-5">
             <div className="flex items-start gap-4">
               <div className="relative w-11 h-11 rounded-xl border border-slate-200 overflow-hidden shrink-0 bg-slate-100 shadow-2xs">
-                <Image
+                <KlubiAvatar
                   src={reply.authorAvatar}
                   alt={reply.authorName}
                   fill
-                  sizes="44px"
-                  className="object-cover"
                 />
               </div>
 

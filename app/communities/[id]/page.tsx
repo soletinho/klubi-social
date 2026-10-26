@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { KlubiAvatar } from '@/components/KlubiAvatar';
 import { useParams } from 'next/navigation';
 import { 
   Users, 
@@ -306,12 +307,10 @@ export default function CommunityDetailPage() {
                       className="py-3.5 flex items-start gap-3.5 group hover:bg-slate-50/50 px-2 rounded-xl transition"
                     >
                       <div className="relative w-10 h-10 rounded-xl border border-slate-200 overflow-hidden shrink-0 bg-slate-100 shadow-2xs mt-0.5">
-                        <Image
+                        <KlubiAvatar
                           src={topic.authorAvatar}
                           alt={topic.authorName}
                           fill
-                          sizes="40px"
-                          className="object-cover"
                         />
                       </div>
 
@@ -431,12 +430,11 @@ export default function CommunityDetailPage() {
                       className="flex flex-col items-center text-center cursor-pointer group"
                     >
                       <div className="relative w-14 h-14 rounded-xl border border-slate-200 overflow-hidden shadow-2xs group-hover:border-klubi-primary transition">
-                        <Image
+                        <KlubiAvatar
                           src={member.avatarUrl}
                           alt={member.name}
                           fill
-                          sizes="56px"
-                          className="object-cover group-hover:scale-105 transition"
+                          className="group-hover:scale-105 transition"
                         />
                       </div>
                       <span className="mt-1 text-[10px] text-slate-600 truncate max-w-full font-medium">

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { KlubiAvatar } from '@/components/KlubiAvatar';
 import { 
   Search, 
   Users, 
@@ -90,12 +91,10 @@ export const Navbar: React.FC = () => {
                 className="flex items-center gap-2 bg-white/10 hover:bg-white/15 px-2.5 py-1.5 rounded-xl border border-white/20 transition"
               >
                 <div className="relative w-7 h-7 rounded-full overflow-hidden border border-white/60 shrink-0">
-                  <Image
+                  <KlubiAvatar
                     src={currentUser.avatarUrl}
                     alt={currentUser.name}
                     fill
-                    sizes="28px"
-                    className="object-cover"
                   />
                 </div>
                 <div className="hidden sm:flex flex-col text-left">

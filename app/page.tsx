@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -12,7 +12,9 @@ import {
   Compass, 
   ShieldCheck, 
   Heart,
-  ArrowRight
+  ArrowRight,
+  Edit3,
+  Camera
 } from 'lucide-react';
 import { useKlubi } from '@/context/KlubiContext';
 import { UserSidebar } from '@/components/UserSidebar';
@@ -23,6 +25,7 @@ import { Scrapbook } from '@/components/Scrapbook';
 import { TestimonialsManager } from '@/components/TestimonialsManager';
 import { FriendsGrid } from '@/components/FriendsGrid';
 import { CommunitiesGrid } from '@/components/CommunitiesGrid';
+import { EditProfileModal } from '@/components/EditProfileModal';
 
 export default function HomePage() {
   const { 
@@ -34,6 +37,8 @@ export default function HomePage() {
     getUserCommunities,
     getReputation
   } = useKlubi();
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   if (isLoadingSession) {
     return (
@@ -170,7 +175,7 @@ export default function HomePage() {
       <section className="lg:col-span-6 flex flex-col gap-4 order-2">
         {/* Banner do Perfil Real */}
         <div className="klubi-card p-4 bg-gradient-to-r from-blue-50/70 via-white to-pink-50/50">
-          <div className="flex flex-col sm:flex-row sm:items-baseline justify-between border-b border-slate-200/80 pb-3 mb-3 gap-1.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200/80 pb-3 mb-3 gap-2">
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
                 <span>{currentUser.name}</span>
@@ -182,22 +187,53 @@ export default function HomePage() {
                 Membro do Klubi • {currentUser.city}, {currentUser.country}
               </p>
             </div>
-            <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-              Online agora
-            </span>
-          </div>
-
-          {/* Pensamento / Sorte de Hoje */}
-          <div className="flex items-start gap-2.5 bg-white/90 border border-slate-200/80 rounded-xl p-3 text-xs text-slate-700 shadow-2xs">
-            <Sparkles size={16} className="text-klubi-accent shrink-0 mt-0.5" />
-            <div>
-              <strong className="text-slate-900 font-semibold">Sua rede começa aqui:</strong>{' '}
-              <span className="italic text-slate-600">
-                &ldquo;Seu perfil está pronto e limpo! Crie comunidades, compartilhe seu link com amigos e comece sua própria história no Klubi.&rdquo;
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="bg-klubi-primary hover:bg-blue-800 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <Edit3 size={13} />
+                <span>Editar Perfil</span>
+              </button>
+              <span className="text-xs text-emerald-600 font-medium hidden sm:flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                Online
               </span>
             </div>
           </div>
+
+          {/* Pensamento / Sorte de Hoje ou Chamada para Completar Perfil */}
+          {(!currentUser.interests?.music?.length && !currentUser.interests?.movies?.length) ? (
+            <div className="flex items-start justify-between gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 shadow-2xs">
+              <div className="flex items-start gap-2.5">
+                <Sparkles size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="font-bold">Complete seu perfil no Klubi!</strong>{' '}
+                  <span className="text-amber-800">
+                    Assim como no Orkut clássico, adicione sua foto, suas bandas favoritas, filmes e seu status de hoje.
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg transition"
+              >
+                Completar agora
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2.5 bg-white/90 border border-slate-200/80 rounded-xl p-3 text-xs text-slate-700 shadow-2xs">
+              <Sparkles size={16} className="text-klubi-accent shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-slate-900 font-semibold">Status de hoje:</strong>{' '}
+                <span className="italic text-slate-600">
+                  &ldquo;{currentUser.statusMessage || 'Conectado no Klubi!'}&rdquo;
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 1. Graus de Conexão */}
@@ -244,6 +280,12 @@ export default function HomePage() {
           totalCommunities={userCommunities.length}
         />
       </section>
+
+      {/* Modal de Edição de Perfil */}
+      <EditProfileModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+      />
     </div>
   );
 }

@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Users } from 'lucide-react';
 import { FriendSummary } from '@/types';
+import { KlubiAvatar } from '@/components/KlubiAvatar';
 
 interface FriendsGridProps {
   friends: FriendSummary[];
@@ -37,12 +37,11 @@ export const FriendsGrid: React.FC<FriendsGridProps> = ({
               title={`Visitar perfil de ${friend.name}`}
             >
               <div className="relative w-16 h-16 rounded-xl border border-slate-200 overflow-hidden group-hover:border-klubi-primary transition shadow-2xs bg-slate-100">
-                <Image
+                <KlubiAvatar
                   src={friend.avatarUrl}
                   alt={friend.name}
                   fill
-                  sizes="64px"
-                  className="object-cover group-hover:scale-110 transition duration-300"
+                  className="group-hover:scale-110 transition duration-300"
                 />
               </div>
               <span className="mt-1.5 text-[11px] font-medium text-slate-700 group-hover:text-klubi-primary group-hover:underline truncate max-w-full">
