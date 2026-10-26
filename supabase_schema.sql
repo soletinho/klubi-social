@@ -1,11 +1,21 @@
 -- ===============================================================
 -- KLUBI SOCIAL - SCHEMA COMPARTILHADO GLOBAL NA NUVEM (SUPABASE)
--- Execute este script no SQL Editor do Supabase para conectar
--- todos os usuários em qualquer rede ou dispositivo em tempo real!
+-- Execute este script no SQL Editor do Supabase (Run)
 -- ===============================================================
 
+-- Limpeza de constraints antigas para permitir cadastros diretos
+drop table if exists public.friendships cascade;
+drop table if exists public.scraps cascade;
+drop table if exists public.testimonials cascade;
+drop table if exists public.community_members cascade;
+drop table if exists public.communities cascade;
+drop table if exists public.topics cascade;
+drop table if exists public.replies cascade;
+drop table if exists public.visitors cascade;
+drop table if exists public.profiles cascade;
+
 -- 1. Tabela de Perfis Públicos (Profiles)
-create table if not exists public.profiles (
+create table public.profiles (
   id text primary key,
   name text not null,
   nickname text unique not null,
@@ -34,7 +44,7 @@ drop policy if exists "Qualquer pessoa pode atualizar perfil" on public.profiles
 create policy "Qualquer pessoa pode atualizar perfil" on public.profiles for update using (true);
 
 -- 2. Tabela de Comunidades
-create table if not exists public.communities (
+create table public.communities (
   id text primary key,
   title text not null,
   description text not null,
@@ -57,7 +67,7 @@ drop policy if exists "Membros podem atualizar comunidades" on public.communitie
 create policy "Membros podem atualizar comunidades" on public.communities for update using (true);
 
 -- 3. Membros de Comunidades
-create table if not exists public.community_members (
+create table public.community_members (
   id uuid default gen_random_uuid() primary key,
   community_id text not null,
   user_id text not null,
@@ -74,7 +84,7 @@ drop policy if exists "Membros podem sair de comunidades" on public.community_me
 create policy "Membros podem sair de comunidades" on public.community_members for delete using (true);
 
 -- 4. Tabela de Amizades (Friendships)
-create table if not exists public.friendships (
+create table public.friendships (
   id uuid default gen_random_uuid() primary key,
   user_id text not null,
   friend_id text not null,
@@ -91,7 +101,7 @@ drop policy if exists "Amizades podem ser desfeitas" on public.friendships;
 create policy "Amizades podem ser desfeitas" on public.friendships for delete using (true);
 
 -- 5. Tabela de Scraps (Mural de Recados)
-create table if not exists public.scraps (
+create table public.scraps (
   id text primary key,
   sender_id text not null,
   sender_name text not null,
@@ -110,7 +120,7 @@ drop policy if exists "Excluir scraps" on public.scraps;
 create policy "Excluir scraps" on public.scraps for delete using (true);
 
 -- 6. Tabela de Depoimentos (Testimonials)
-create table if not exists public.testimonials (
+create table public.testimonials (
   id text primary key,
   sender_id text not null,
   sender_name text not null,
@@ -132,7 +142,7 @@ drop policy if exists "Excluir depoimentos" on public.testimonials;
 create policy "Excluir depoimentos" on public.testimonials for delete using (true);
 
 -- 7. Tabela de Tópicos do Fórum
-create table if not exists public.topics (
+create table public.topics (
   id text primary key,
   community_id text not null,
   author_id text not null,
@@ -150,7 +160,7 @@ drop policy if exists "Criar tópicos" on public.topics;
 create policy "Criar tópicos" on public.topics for insert with check (true);
 
 -- 8. Tabela de Respostas do Fórum
-create table if not exists public.replies (
+create table public.replies (
   id text primary key,
   topic_id text not null,
   author_id text not null,
@@ -167,7 +177,7 @@ drop policy if exists "Criar respostas" on public.replies;
 create policy "Criar respostas" on public.replies for insert with check (true);
 
 -- 9. Tabela de Visitantes (Quem Me Viu)
-create table if not exists public.visitors (
+create table public.visitors (
   id text primary key,
   profile_id text not null,
   visitor_id text not null,
